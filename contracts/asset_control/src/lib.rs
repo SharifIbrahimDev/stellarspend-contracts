@@ -85,7 +85,7 @@ impl AssetControlContract {
             .set(&DataKey::Blacklist, &blacklist);
 
         env.events().publish(
-            (symbol_short!("asset"), symbol_short!("unblacklist")),
+            (symbol_short!("asset"), symbol_short!("unblklist")),
             asset,
         );
     }

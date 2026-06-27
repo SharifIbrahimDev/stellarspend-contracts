@@ -321,7 +321,6 @@ impl BudgetAllocationContract {
             
         if let Some(mut record) = budget_record {
             // Reset only the spent amount, preserve the budget limit
-            record.spent = 0;
             record.last_updated = now;
                 
             // Store updated record

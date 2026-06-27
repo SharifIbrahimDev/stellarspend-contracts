@@ -32,9 +32,8 @@ pub use crate::types::{
 };
 use crate::validation::validate_limit_request;
 
-// Add cross-contract imports for whitelist functionality
+// Add imports for whitelist functionality
 use soroban_sdk::{Bytes, Symbol};
-use crate::cross_contract::DataKey as CrossContractDataKey;
 
 /// Error codes for the spending limits contract.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -282,7 +281,7 @@ impl SpendingLimitsContract {
 
         // Check if destination is whitelisted (spending whitelist)
         // This prevents unauthorized destinations from receiving funds
-        if !Self::is_destination_whitelisted(env, user.clone()) {
+        if !Self::is_destination_whitelisted_internal(&env, &user) {
             panic_with_error!(&env, SpendingLimitError::Unauthorized);
         }
 
@@ -449,7 +448,7 @@ impl SpendingLimitsContract {
 
         env.storage()
             .persistent()
-            .set(&CrossContractDataKey::Whitelist(destination.clone()), &true);
+            .set(&DataKey::Whitelist(destination.clone()), &true);
     }
 
     /// Removes a destination address from the spending whitelist.
@@ -460,17 +459,16 @@ impl SpendingLimitsContract {
 
         env.storage()
             .persistent()
-            .remove(&CrossContractDataKey::Whitelist(destination.clone()));
+            .remove(&DataKey::Whitelist(destination.clone()));
     }
 
     /// Checks if a destination address is whitelisted for receiving funds.
     /// This is a public read-only method that can be called by anyone.
     pub fn is_destination_whitelisted(env: Env, destination: Address) -> bool {
-        // Use the same whitelist storage pattern as cross-contract module
         // Check if destination is in whitelist
         env.storage()
             .persistent()
-            .has(&CrossContractDataKey::Whitelist(destination.clone()))
+            .has(&DataKey::Whitelist(destination.clone()))
     }
 
     /// Returns the last created batch ID.
@@ -511,26 +509,14 @@ impl SpendingLimitsContract {
     }
 
     /// Checks if a destination address is whitelisted for receiving funds.
-    /// Uses the cross-contract whitelist functionality to determine authorization.
-    fn is_destination_whitelisted(env: &Env, destination: &Address) -> bool {
-        // Use the same whitelist storage pattern as cross-contract module
+    fn is_destination_whitelisted_internal(env: &Env, destination: &Address) -> bool {
         // Check if destination is in whitelist
         env.storage()
             .persistent()
-            .has(&CrossContractDataKey::Whitelist(destination.clone()))
+            .has(&DataKey::Whitelist(destination.clone()))
     }
 }
 
 #[cfg(test)]
 mod test;
-
-#[derive(Clone)]
-#[contracttype]
-pub struct Budget {
-    pub owner: Address,
-    pub limit: i128,
-    pub spent: i128,
-
-    // backward-compatible
-    pub category: Option<BudgetCategory>,
-}
+

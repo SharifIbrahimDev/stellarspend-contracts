@@ -12,7 +12,7 @@ use crate::{UpgradeableContract, UpgradeableContractClient};
 
 mod new_contract {
     soroban_sdk::contractimport!(
-       file = "/home/ncdndjdj/stellarspend-contracts/target/wasm32v1-none/release/soroban_upgradeable_contract_new_contract.wasm"
+       file = "../../../target/wasm32-unknown-unknown/release/soroban_upgradeable_contract_new_contract.wasm"
     );
 }
 
@@ -34,7 +34,7 @@ fn test() {
 
     let new_wasm_hash = install_new_wasm(&env);
 
-    client.upgrade(&new_wasm_hash);
+    client.upgrade(&new_wasm_hash, &2);
     assert_eq!(2, client.version());
 
     // new_v2_fn was added in the new contract, so the existing
@@ -44,14 +44,14 @@ fn test() {
 
     // New contract version requires the `NewAdmin` key to be initialized, but since the constructor
     // hasn't been called, it is not initialized, thus calling try_upgrade won't work.
-    let new_update_result = client.try_upgrade(&new_wasm_hash);
+    let new_update_result = client.try_upgrade(&new_wasm_hash, &3);
     assert!(new_update_result.is_err());
 
     // `handle_upgrade` sets the `NewAdmin` key properly.
     client.handle_upgrade();
 
     // Now upgrade should succeed (though we are not actually changing the Wasm).
-    client.upgrade(&new_wasm_hash);
+    client.upgrade(&new_wasm_hash, &2);
     // The new admin is the same as the old admin, so the authorization is still performed for
     // the `admin` address.
     assert_eq!(
@@ -62,7 +62,7 @@ fn test() {
                 function: AuthorizedFunction::Contract((
                     contract_id.clone(),
                     symbol_short!("upgrade"),
-                    (new_wasm_hash,).into_val(&env),
+                    (new_wasm_hash, 2u32).into_val(&env),
                 )),
                 sub_invocations: std::vec![]
             }

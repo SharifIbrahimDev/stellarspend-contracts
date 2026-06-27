@@ -67,6 +67,20 @@ pub struct SavingsGoalProgress {
     pub is_complete: bool,
 }
 
+/// Represents a completion certificate for a savings goal.
+#[derive(Clone, Debug)]
+#[contracttype]
+pub struct GoalCertificate {
+    /// Unique goal ID
+    pub goal_id: u64,
+    /// User's address
+    pub user: Address,
+    /// Target amount that was achieved
+    pub target_amount: i128,
+    /// Timestamp when the certificate was issued (ledger sequence)
+    pub completed_at: u64,
+}
+
 /// Result of processing a single goal creation.
 #[derive(Clone, Debug)]
 #[contracttype]
@@ -217,6 +231,8 @@ pub enum DataKey {
     GoalMilestonesPercent(u64),
     /// Total milestones achieved lifetime
     TotalMilestonesAchieved,
+    /// Stored certificate by goal_id
+    Certificate(u64),
 }
 
 /// Error codes for goal validation and creation.
@@ -243,6 +259,8 @@ pub mod ErrorCode {
     pub const UNAUTHORIZED_USER: u32 = 8;
     /// Goal has already achieved this milestone
     pub const MILESTONE_ALREADY_ACHIEVED: u32 = 9;
+    /// Cannot merge goals (invalid parameters)
+    pub const CANNOT_MERGE: u32 = 11;
 }
 
 /// Events emitted by the savings goals contract.
@@ -338,5 +356,17 @@ impl GoalEvents {
         let topics = (symbol_short!("milestone"), symbol_short!("done"));
         env.events()
             .publish(topics, (batch_id, successful, failed, total_percentage));
+    }
+
+    /// Event emitted when a goal completion certificate is issued.
+    pub fn certificate_issued(env: &Env, goal_id: u64, timestamp: u64) {
+        let topics = (symbol_short!("cert"), symbol_short!("issued"), goal_id);
+        env.events().publish(topics, (goal_id, timestamp));
+    }
+
+    /// Event emitted when two goals are merged.
+    pub fn goals_merged(env: &Env, source_id: u64, target_id: u64, amount_merged: i128) {
+        let topics = (symbol_short!("goal"), symbol_short!("merged"), target_id);
+        env.events().publish(topics, (source_id, target_id, amount_merged));
     }
 }

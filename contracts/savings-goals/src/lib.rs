@@ -29,8 +29,9 @@ use soroban_sdk::{contract, contractimpl, panic_with_error, Address, Env, Vec};
 
 pub use crate::types::{
     BatchGoalMetrics, BatchGoalResult, BatchMilestoneMetrics, BatchMilestoneResult, DataKey,
-    ErrorCode, GoalEvents, GoalResult, MilestoneAchievement, MilestoneAchievementRequest,
-    MilestoneResult, SavingsGoal, SavingsGoalProgress, SavingsGoalRequest, MAX_BATCH_SIZE,
+    ErrorCode, GoalCertificate, GoalEvents, GoalResult, MilestoneAchievement,
+    MilestoneAchievementRequest, MilestoneResult, SavingsGoal, SavingsGoalProgress,
+    SavingsGoalRequest, MAX_BATCH_SIZE,
 };
 use crate::validation::{validate_goal_request, validate_milestone_request};
 
@@ -474,6 +475,23 @@ impl SavingsGoalsContract {
             goal.is_complete = is_complete;
             env.storage().persistent().set(&DataKey::Goal(goal_id), &goal);
         }
+
+        // Issue a completion certificate if complete and one hasn't been issued yet
+        if is_complete {
+            let cert_key = DataKey::Certificate(goal_id);
+            if !env.storage().persistent().has(&cert_key) {
+                let timestamp = env.ledger().sequence() as u64;
+                let cert = GoalCertificate {
+                    goal_id,
+                    user: goal.user.clone(),
+                    target_amount: goal.target_amount,
+                    completed_at: timestamp,
+                };
+                env.storage().persistent().set(&cert_key, &cert);
+                GoalEvents::certificate_issued(env, goal_id, timestamp);
+            }
+        }
+
         for &milestone in milestones.iter() {
             if progress >= milestone && !triggered.contains(&milestone) {
                 // Emit event
@@ -484,6 +502,63 @@ impl SavingsGoalsContract {
         env.storage()
             .persistent()
             .set(&DataKey::GoalMilestonesPercent(goal_id), &triggered);
+    }
+
+    /// Merges a source goal into a target goal.
+    /// The source goal will be archived (is_active = false) and its current amount will be moved to the target goal.
+    ///
+    /// # Arguments
+    /// * `env` - The contract environment
+    /// * `caller` - The address calling this function (must be owner of both goals)
+    /// * `source_goal_id` - The ID of the goal to merge from
+    /// * `target_goal_id` - The ID of the goal to merge to
+    pub fn merge_goals(env: Env, caller: Address, source_goal_id: u64, target_goal_id: u64) {
+        caller.require_auth();
+
+        if source_goal_id == target_goal_id {
+            panic_with_error!(&env, ErrorCode::CANNOT_MERGE);
+        }
+
+        let mut source_goal: SavingsGoal = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Goal(source_goal_id))
+            .unwrap_or_else(|| panic_with_error!(&env, ErrorCode::GOAL_NOT_FOUND));
+
+        let mut target_goal: SavingsGoal = env
+            .storage()
+            .persistent()
+            .get(&DataKey::Goal(target_goal_id))
+            .unwrap_or_else(|| panic_with_error!(&env, ErrorCode::GOAL_NOT_FOUND));
+
+        if source_goal.user != caller || target_goal.user != caller {
+            panic_with_error!(&env, ErrorCode::UNAUTHORIZED_USER);
+        }
+
+        if !source_goal.is_active || !target_goal.is_active {
+            panic_with_error!(&env, ErrorCode::GOAL_NOT_ACTIVE);
+        }
+
+        let amount_to_merge = source_goal.current_amount;
+        target_goal.current_amount = target_goal
+            .current_amount
+            .checked_add(amount_to_merge)
+            .unwrap_or(i128::MAX);
+
+        source_goal.current_amount = 0;
+        source_goal.is_active = false;
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Goal(source_goal_id), &source_goal);
+        env.storage()
+            .persistent()
+            .set(&DataKey::Goal(target_goal_id), &target_goal);
+
+        GoalEvents::goals_merged(&env, source_goal_id, target_goal_id, amount_to_merge);
+
+        // Check milestones for the target goal after adding funds
+        Self::check_and_emit_milestones(&env, target_goal_id);
     }
     // ...existing code...
 
@@ -653,6 +728,11 @@ impl SavingsGoalsContract {
             .instance()
             .get(&DataKey::TotalMilestonesAchieved)
             .unwrap_or(0)
+    }
+
+    /// Retrieves a completion certificate by goal ID.
+    pub fn get_certificate(env: Env, goal_id: u64) -> Option<GoalCertificate> {
+        env.storage().persistent().get(&DataKey::Certificate(goal_id))
     }
 
     // Internal helper to verify admin

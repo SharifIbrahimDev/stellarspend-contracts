@@ -115,19 +115,18 @@ pub fn validate_and_compute_balance(
 
 /// Computes new balance based on operation.
 fn compute_new_balance(current: i128, operation: &Symbol, amount: i128) -> Result<i128, u32> {
-    // Note: In production, use proper symbol comparison
-    // For now, we'll use symbol_short! macro patterns
-    let op_str = operation.to_string();
-
-    match op_str.as_str() {
-        "set" => Ok(amount),
-        "add" => current
+    if operation == &soroban_sdk::symbol_short!("set") {
+        Ok(amount)
+    } else if operation == &soroban_sdk::symbol_short!("add") {
+        current
             .checked_add(amount)
-            .ok_or(ErrorCode::ARITHMETIC_OVERFLOW),
-        "subtract" => current
+            .ok_or(ErrorCode::ARITHMETIC_OVERFLOW)
+    } else if operation == &soroban_sdk::symbol_short!("subtract") {
+        current
             .checked_sub(amount)
-            .ok_or(ErrorCode::ARITHMETIC_OVERFLOW),
-        _ => Err(ErrorCode::INVALID_OPERATION),
+            .ok_or(ErrorCode::ARITHMETIC_OVERFLOW)
+    } else {
+        Err(ErrorCode::INVALID_OPERATION)
     }
 }
 

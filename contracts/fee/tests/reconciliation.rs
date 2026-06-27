@@ -2,7 +2,7 @@ mod support;
 
 use soroban_sdk::Address;
 use support::setup;
-use soroban_sdk::{testutils::Address as _, Address};
+use soroban_sdk::testutils::Address as _;
 
 #[test]
 fn reconciliation_balanced_after_init() {

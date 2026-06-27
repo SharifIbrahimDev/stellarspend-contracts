@@ -33,7 +33,7 @@ pub enum TransactionError {
     DuplicateTransaction = 9,
 }
 
-const MAX_NOTE_LENGTH: usize = 256;
+const MAX_NOTE_LENGTH: u32 = 256;
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -291,11 +291,11 @@ impl TransactionsContract {
             panic_with_error!(&env, TransactionError::TransactionNotFound);
         }
         
-        let success = storage::update_transaction_status(&env, id.clone(), caller, status);
+        let success = storage::update_transaction_status(&env, id.clone(), caller, status.clone());
         
         if success {
             env.events().publish(
-                (symbol_short!("tx"), symbol_short!("status_upd")),
+                (symbol_short!("tx"), symbol_short!("stat_upd")),
                 (id.clone(), status),
             );
         }

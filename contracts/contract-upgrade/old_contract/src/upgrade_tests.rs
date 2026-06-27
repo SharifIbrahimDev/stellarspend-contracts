@@ -8,13 +8,13 @@ use soroban_sdk::{
 
 mod old_contract {
     soroban_sdk::contractimport!(
-        file = "/home/ncdndjdj/stellarspend-contracts/target/wasm32v1-none/release/soroban_upgradeable_contract_old_contract.wasm"
+        file = "../../../target/wasm32-unknown-unknown/release/soroban_upgradeable_contract_old_contract.wasm"
     );
 }
 
 mod new_contract {
     soroban_sdk::contractimport!(
-        file = "/home/ncdndjdj/stellarspend-contracts/target/wasm32v1-none/release/soroban_upgradeable_contract_new_contract.wasm"
+        file = "../../../target/wasm32-unknown-unknown/release/soroban_upgradeable_contract_new_contract.wasm"
     );
 }
 
@@ -38,7 +38,7 @@ fn test_unauthorized_upgrade_fails() {
     let contract_id = env.register(old_contract::WASM, (&admin,));
     let client = old_contract::Client::new(&env, &contract_id);
     let new_wasm_hash = install_new_wasm(&env);
-    client.upgrade(&new_wasm_hash);
+    client.upgrade(&new_wasm_hash, &2);
 }
 
 // Test 2: Upgrade emits event
@@ -49,7 +49,7 @@ fn test_upgrade_emits_event() {
     let (_, contract_id) = setup(&env);
     let client = old_contract::Client::new(&env, &contract_id);
     let new_wasm_hash = install_new_wasm(&env);
-    client.upgrade(&new_wasm_hash);
+    client.upgrade(&new_wasm_hash, &2);
     let events = env.events().all();
     assert!(!events.is_empty(), "upgrade should emit an event");
 }
@@ -63,7 +63,7 @@ fn test_state_preserved_after_upgrade() {
     let client = old_contract::Client::new(&env, &contract_id);
     assert_eq!(1, client.version());
     let new_wasm_hash = install_new_wasm(&env);
-    client.upgrade(&new_wasm_hash);
+    client.upgrade(&new_wasm_hash, &2);
     // version should now be 2
     let new_client = new_contract::Client::new(&env, &contract_id);
     assert_eq!(2, new_client.version());
@@ -77,10 +77,10 @@ fn test_second_upgrade_fails_without_migration() {
     let (_, contract_id) = setup(&env);
     let client = old_contract::Client::new(&env, &contract_id);
     let new_wasm_hash = install_new_wasm(&env);
-    client.upgrade(&new_wasm_hash);
+    client.upgrade(&new_wasm_hash, &2);
     let new_client = new_contract::Client::new(&env, &contract_id);
     // NewAdmin key not set yet, second upgrade should fail
-    let result = new_client.try_upgrade(&new_wasm_hash);
+    let result = new_client.try_upgrade(&new_wasm_hash, &3);
     assert!(
         result.is_err(),
         "upgrade should fail without handle_upgrade"
@@ -95,11 +95,11 @@ fn test_handle_upgrade_migrates_state() {
     let (_, contract_id) = setup(&env);
     let client = old_contract::Client::new(&env, &contract_id);
     let new_wasm_hash = install_new_wasm(&env);
-    client.upgrade(&new_wasm_hash);
+    client.upgrade(&new_wasm_hash, &2);
     let new_client = new_contract::Client::new(&env, &contract_id);
     new_client.handle_upgrade();
     // after migration, upgrade should succeed
-    let result = new_client.try_upgrade(&new_wasm_hash);
+    let result = new_client.try_upgrade(&new_wasm_hash, &3);
     assert!(
         result.is_ok(),
         "upgrade should succeed after handle_upgrade"

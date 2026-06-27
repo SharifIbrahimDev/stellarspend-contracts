@@ -11,7 +11,7 @@ pub use crate::types::{
     TransferRequest, TransferResult, MAX_BATCH_SIZE,
 };
 //bbbb
-use crate::validation::{validate_address, validate_amount};
+use crate::validation::{validate_address, validate_amount, validate_unique_recipient};
 
 /// Error codes for the batch transfer contract.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

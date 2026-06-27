@@ -1,4 +1,5 @@
-use soroban_sdk::{Env, Symbol, String};
+use soroban_sdk::{Env, Symbol};
+extern crate alloc;
 
 /// Generate a unique transaction ID
 pub fn generate_transaction_id(env: &Env) -> Symbol {
@@ -12,7 +13,7 @@ pub fn generate_transaction_id(env: &Env) -> Symbol {
     counter += 1;
     
     // Create ID string
-    let id_str = String::from_str(env, &counter.to_string());
+    let id_str = alloc::format!("tx{}", counter);
     
     // Update counter
     env.storage()
