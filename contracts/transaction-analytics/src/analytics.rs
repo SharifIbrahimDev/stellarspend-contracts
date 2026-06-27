@@ -566,7 +566,7 @@ fn update_category_spending(
             if i != index {
                 new_vec.push_back(category_spending.get(i).unwrap());
             } else {
-                new_vec.push_back((category, new_amount));
+                new_vec.push_back((category.clone(), new_amount));
             }
         }
         *category_spending = new_vec;

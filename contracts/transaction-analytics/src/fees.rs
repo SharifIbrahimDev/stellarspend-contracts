@@ -191,12 +191,12 @@ fn calculate_effective_rate(gross_amount: i128, fee_amount: i128) -> u32 {
 /// Calculates fees for multiple transactions
 pub fn calculate_batch_fees(
     env: &Env,
-    amounts: &[i128],
+    amounts: &Vec<i128>,
     fee_config: &FeeConfig,
 ) -> Vec<FeeCalculationResult> {
     let mut results = Vec::new(env);
 
-    for &amount in amounts {
+    for amount in amounts.iter() {
         let result = calculate_transaction_fee(env, amount, fee_config);
         results.push_back(result);
     }

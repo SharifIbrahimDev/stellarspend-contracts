@@ -261,7 +261,7 @@ impl TransactionAnalyticsContract {
             panic_with_error!(&env, AnalyticsError::EmptyBatch);
         }
 
-        if logs.len() > MAX_BATCH_SIZE as usize {
+        if logs.len() > MAX_BATCH_SIZE {
             panic_with_error!(&env, AnalyticsError::BatchTooLarge);
         }
 

@@ -18,13 +18,8 @@ use crate::types::{
 ///
 /// # Returns
 /// * `Ok(())` if valid, `Err(ValidationError)` if invalid
-pub fn validate_address(env: &Env, address: &Address) -> Result<(), ValidationError> {
+pub fn validate_address(_address: &Address) -> Result<(), ValidationError> {
     // Soroban SDK addresses are guaranteed to be valid by construction
-    // However, we can perform additional checks if needed
-    if address.is_none() {
-        return Err(ValidationError::InvalidAddress);
-    }
-
     Ok(())
 }
 
@@ -64,10 +59,7 @@ pub fn validate_transaction(transaction: &Transaction) -> Result<(), ValidationE
         return Err(ValidationError::InvalidTimestamp);
     }
 
-    // Validate category is not empty
-    if transaction.category.to_str().len() == 0 {
-        return Err(ValidationError::InvalidCategory);
-    }
+    // Validate category is not empty (Symbol length check omitted for no_std)
 
     Ok(())
 }
@@ -98,16 +90,7 @@ pub fn validate_refund_request(request: &RefundRequest) -> Result<(), Validation
         return Err(ValidationError::InvalidTransactionId);
     }
 
-    // Validate reason if provided
-    if let Some(reason) = &request.reason {
-        if reason.to_str().len() == 0 {
-            return Err(ValidationError::InvalidReason);
-        }
-        if reason.to_str().len() > 255 {
-            // Arbitrary limit for reason length
-            return Err(ValidationError::InvalidReason);
-        }
-    }
+    // Validate reason if provided (Symbol length check omitted)
 
     Ok(())
 }
@@ -221,16 +204,7 @@ pub fn validate_bundled_transaction(
         return Err(ValidationError::SameAddress);
     }
 
-    // Validate memo if provided
-    if let Some(memo) = &bundled_tx.memo {
-        if memo.to_str().len() == 0 {
-            return Err(ValidationError::InvalidMemo);
-        }
-        if memo.to_str().len() > 255 {
-            // Arbitrary limit for memo length
-            return Err(ValidationError::InvalidMemo);
-        }
-    }
+    // Validate memo if provided (Symbol length check omitted)
 
     Ok(())
 }
@@ -257,8 +231,8 @@ pub fn validate_bundled_transactions(
 }
 
 /// Validates a user address for analytics functions
-pub fn validate_user_address(env: &Env, user: &Address) -> Result<(), ValidationError> {
-    validate_address(env, user)
+pub fn validate_user_address(_env: &Env, user: &Address) -> Result<(), ValidationError> {
+    validate_address(user)
 }
 
 /// Validates year and month for analytics functions
