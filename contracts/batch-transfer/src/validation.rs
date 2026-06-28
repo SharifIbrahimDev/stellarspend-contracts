@@ -25,7 +25,7 @@ pub fn validate_unique_recipient(
     recipient: &Address,
 ) -> Result<(), ValidationError> {
     for existing in seen.iter() {
-        if existing == recipient.clone() {
+        if &existing == recipient {
             return Err(ValidationError::DuplicateRecipient(recipient.clone()));
         }
     }

@@ -32,7 +32,7 @@ pub struct AuditLog {
     pub status: Symbol,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 #[contracttype]
 pub struct BatchMetrics {
     pub tx_count: u32,
@@ -233,7 +233,7 @@ pub struct FeeConfig {
     pub description: Option<Symbol>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 #[contracttype]
 pub struct FeeCalculationResult {
     pub gross_amount: i128,
@@ -242,7 +242,7 @@ pub struct FeeCalculationResult {
     pub fee_percentage_bps: u32,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 #[contracttype]
 pub struct FeeDeductionEvent {
     pub timestamp: u64,
@@ -269,7 +269,7 @@ pub struct RefundResult {
     pub error_message: Option<Symbol>,
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 #[contracttype]
 pub struct RefundBatchMetrics {
     pub request_count: u32,

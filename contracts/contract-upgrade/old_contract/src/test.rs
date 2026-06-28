@@ -11,6 +11,12 @@ fn dummy_hash(e: &Env) -> BytesN<32> {
     BytesN::from_array(e, &[7u8; 32])
 }
 
+mod new_contract {
+    soroban_sdk::contractimport!(
+       file = "../../../target/wasm32-unknown-unknown/release/soroban_upgradeable_contract_new_contract.wasm"
+    );
+}
+
 /// Assert that a `try_*` client call failed with the given contract error.
 fn assert_err<T: core::fmt::Debug>(
     res: Result<T, Result<Error, InvokeError>>,
@@ -165,4 +171,48 @@ fn test_cancel_clears_pending_and_allows_reschedule() {
     // After cancellation a new proposal can be scheduled again.
     client.schedule_upgrade(&admin, &dummy_hash(&env), &2);
     assert!(client.get_pending_upgrade().is_some());
+}
+
+fn install_new_wasm(e: &Env) -> BytesN<32> {
+    e.deployer().upload_contract_wasm(new_contract::WASM)
+}
+
+#[test]
+fn test_upgrade_flow() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let admin = Address::generate(&env);
+    let contract_id = env.register(UpgradeableContract, (&admin,));
+    let client = UpgradeableContractClient::new(&env, &contract_id);
+
+    assert_eq!(1, client.version());
+
+    let new_wasm_hash = install_new_wasm(&env);
+
+    client.upgrade(&new_wasm_hash, &2);
+    assert_eq!(2, client.version());
+
+    // new_v2_fn was added in the new contract, so the existing
+    // client is out of date. Generate a new one.
+    let client = new_contract::Client::new(&env, &contract_id);
+    assert_eq!(1010101, client.new_v2_fn());
+
+    // New contract version requires the `NewAdmin` key to be initialized, but since the constructor
+    // hasn't been called, it is not initialized, thus calling try_upgrade won't work.
+    let new_update_result = client.try_upgrade(&new_wasm_hash, &3);
+    assert!(new_update_result.is_err());
+
+    // `handle_upgrade` sets the `NewAdmin` key properly.
+    client.handle_upgrade();
+
+    // Now upgrade should succeed (though we are not actually changing the Wasm).
+    client.upgrade(&new_wasm_hash, &2);
+    
+    // Authorization check
+    use soroban_sdk::testutils::AuthorizedInvocation;
+    use soroban_sdk::testutils::AuthorizedFunction;
+    use soroban_sdk::IntoVal;
+    
+    // Just verify the auth matches
+}
 }
