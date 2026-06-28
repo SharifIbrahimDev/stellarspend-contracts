@@ -3,7 +3,7 @@
 //! Implements strict validation for all public inputs in the transaction analytics contract.
 //! Provides standardized validation functions for addresses, amounts, assets, and other inputs.
 
-use soroban_sdk::{symbol_short, Address, Env, String, Symbol};
+use soroban_sdk::{Address, Env, Vec};
 
 use crate::types::{
     BundledTransaction, RatingInput, RefundRequest, Transaction, TransactionStatusUpdate,
@@ -13,7 +13,6 @@ use crate::types::{
 /// Validates an address input ensuring it's not empty/null.
 ///
 /// # Arguments
-/// * `env` - The contract environment
 /// * `address` - The address to validate
 ///
 /// # Returns
@@ -59,8 +58,6 @@ pub fn validate_transaction(transaction: &Transaction) -> Result<(), ValidationE
         return Err(ValidationError::InvalidTimestamp);
     }
 
-    // Validate category is not empty (Symbol length check omitted for no_std)
-
     Ok(())
 }
 
@@ -77,7 +74,7 @@ pub fn validate_transactions(transactions: &Vec<Transaction>) -> Result<(), Vali
     }
 
     for transaction in transactions.iter() {
-        validate_transaction(transaction)?;
+        validate_transaction(&transaction)?;
     }
 
     Ok(())
@@ -89,8 +86,6 @@ pub fn validate_refund_request(request: &RefundRequest) -> Result<(), Validation
     if request.tx_id == 0 {
         return Err(ValidationError::InvalidTransactionId);
     }
-
-    // Validate reason if provided (Symbol length check omitted)
 
     Ok(())
 }
@@ -108,13 +103,11 @@ pub fn validate_refund_requests(requests: &Vec<RefundRequest>) -> Result<(), Val
     }
 
     // Check for duplicate transaction IDs
-    let mut seen_tx_ids = std::collections::HashSet::new();
-    for request in requests.iter() {
-        if seen_tx_ids.contains(&request.tx_id) {
+    for (index, request) in requests.iter().enumerate() {
+        if has_duplicate_tx_id_in_refunds(requests, index, request.tx_id) {
             return Err(ValidationError::DuplicateTransactionId);
         }
-        seen_tx_ids.insert(request.tx_id);
-        validate_refund_request(request)?;
+        validate_refund_request(&request)?;
     }
 
     Ok(())
@@ -148,7 +141,7 @@ pub fn validate_rating_inputs(inputs: &Vec<RatingInput>) -> Result<(), Validatio
     }
 
     for input in inputs.iter() {
-        validate_rating_input(input)?;
+        validate_rating_input(&input)?;
     }
 
     Ok(())
@@ -181,13 +174,11 @@ pub fn validate_transaction_status_updates(
     }
 
     // Check for duplicate transaction IDs
-    let mut seen_tx_ids = std::collections::HashSet::new();
-    for update in updates.iter() {
-        if seen_tx_ids.contains(&update.tx_id) {
+    for (index, update) in updates.iter().enumerate() {
+        if has_duplicate_tx_id_in_status_updates(updates, index, update.tx_id) {
             return Err(ValidationError::DuplicateTransactionId);
         }
-        seen_tx_ids.insert(update.tx_id);
-        validate_transaction_status_update(update)?;
+        validate_transaction_status_update(&update)?;
     }
 
     Ok(())
@@ -203,8 +194,6 @@ pub fn validate_bundled_transaction(
     if bundled_tx.transaction.from == bundled_tx.transaction.to {
         return Err(ValidationError::SameAddress);
     }
-
-    // Validate memo if provided (Symbol length check omitted)
 
     Ok(())
 }
@@ -224,15 +213,34 @@ pub fn validate_bundled_transactions(
     }
 
     for bundled_tx in bundled_txs.iter() {
-        validate_bundled_transaction(bundled_tx)?;
+        validate_bundled_transaction(&bundled_tx)?;
     }
 
     Ok(())
 }
 
 /// Validates a user address for analytics functions
-pub fn validate_user_address(_env: &Env, user: &Address) -> Result<(), ValidationError> {
+pub fn validate_user_address(env: &Env, user: &Address) -> Result<(), ValidationError> {
+    let _ = env;
     validate_address(user)
+}
+
+fn has_duplicate_tx_id_in_refunds(requests: &Vec<RefundRequest>, index: usize, tx_id: u64) -> bool {
+    requests
+        .iter()
+        .enumerate()
+        .any(|(other_index, request)| other_index != index && request.tx_id == tx_id)
+}
+
+fn has_duplicate_tx_id_in_status_updates(
+    updates: &Vec<TransactionStatusUpdate>,
+    index: usize,
+    tx_id: u64,
+) -> bool {
+    updates
+        .iter()
+        .enumerate()
+        .any(|(other_index, update)| other_index != index && update.tx_id == tx_id)
 }
 
 /// Validates year and month for analytics functions

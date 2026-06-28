@@ -1,6 +1,6 @@
 //! Validation logic for balance update requests.
 
-use soroban_sdk::{Address, Env, Symbol};
+use soroban_sdk::{symbol_short, Address, Env, Symbol};
 
 use crate::types::{BalanceUpdateRequest, DataKey, ErrorCode, MAX_BALANCE, MIN_BALANCE};
 
@@ -65,10 +65,9 @@ pub fn is_valid_amount(amount: i128) -> bool {
 /// # Returns
 /// * `true` if operation is "set", "add", or "subtract"
 pub fn is_valid_operation(operation: &Symbol) -> bool {
-    // In Soroban, we can't directly convert Symbol to string in no_std
-    // We'll accept any symbol here and handle invalid operations during execution
-    // Valid operations: "set", "add", "subtract"
-    true
+    *operation == symbol_short!("set")
+        || *operation == symbol_short!("add")
+        || *operation == symbol_short!("subtract")
 }
 
 /// Validates balance after operation to prevent negative balances.

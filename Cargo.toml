@@ -7,14 +7,17 @@ members = [
     "contracts/contract-upgrade/old_contract",
     "contracts/contract-upgrade/new_contract",
     "contracts/shared",
+    "contracts/transfer",
     "contracts/batch-transfer",
     "contracts/batch-conversion",
     "contracts/batch-rewards",
     "contracts/batch-payment",
     "contracts/batch-payment-reminders",
     "contracts/batch-wallet-creation",
+    "contracts/budget",
     "contracts/budget-recommendations",
     "contracts/fee",
+    "contracts/stellarspend-fee",
     "contracts/shared-budgets",
     "contracts/multi-currency-wallet",
     "contracts/spending-limits",
@@ -28,8 +31,18 @@ members = [
     "contracts/asset_control",
     "contracts/access-control",
     "contracts/category-analytics",
+    "contracts/spending-categories",
+    "contracts/user",
     "contracts/users",
+    "contracts/activity-feed",
+    "contracts/transactional",
     "contracts/transactions",
+    "contracts/transaction-validation",
+    "contracts/merchant-tagging",
+    "contracts/currency-conversion",
+    "contracts/benchmarks",
+    "contracts/zk-verifier",
+    "contracts/pausable",
 ]
 
 [package]
@@ -53,6 +66,14 @@ path = "tests/memo_tests.rs"
 [[test]]
 name = "governance_test"
 path = "contracts/tests/governance_test.rs"
+
+[[test]]
+name = "rate_limit_tests"
+path = "tests/rate_limit_tests.rs"
+
+[[test]]
+name = "concurrent_spending_tests"
+path = "contracts/tests/concurrent_spending_tests.rs"
 
 [workspace.package]
 version = "0.1.0"
